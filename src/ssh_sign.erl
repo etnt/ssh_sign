@@ -11,6 +11,7 @@
 -export([sign/1
          ,verify/2
          ,public_identity_key/2
+         ,foldf/3
         ]).
 
 
@@ -44,3 +45,17 @@ read_public_key_v2(File, Type) ->
         Error ->
             Error
     end.
+
+%% ----------------------------------------------------------------------------
+%% @spec  foldf(fun(), fun(), list()) -> term()
+%% @doc Runs the first fun on elements in the list.
+%%      Returns the first result for which the predicate is true
+%% @end------------------------------------------------------------------------
+
+foldf(F, Pred, [H|T]) ->
+    Res = F(H),
+    case Pred(Res) of
+        true -> Res;
+        _    -> foldf(F, Pred, T)
+    end;
+foldf(_,_,[]) -> false.
