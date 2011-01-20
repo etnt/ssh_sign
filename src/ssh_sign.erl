@@ -16,8 +16,18 @@
 
 
 sign(Data) when is_binary(Data) ->
-    {ok,Key} = ssh_file:private_identity_key("ssh-rsa",[]),
-    ssh_rsa:sign(Key, Data).
+    {ok,{_,Type,_,_,_}=Key} =
+        foldf(fun(T)->
+                      public_identity_key(T,[])
+              end,
+              fun({error,_})->false;
+                 (_)->true
+              end,
+              ["ssh-dss", "ssh-rsa"]),
+    case Type of
+        dsa -> ssh_dsa:sign(Key, Data);
+        rsa -> ssh_rsa:sign(Key, Data)
+    end.
 
 verify(Data, Sig) when is_binary(Data), is_binary(Sig) ->
     {ok,Key} = public_identity_key("ssh-rsa",[]),
