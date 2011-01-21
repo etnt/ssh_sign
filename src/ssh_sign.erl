@@ -18,7 +18,7 @@
 sign(Data) when is_binary(Data) ->
     {ok,{_,Type,_,_,_}=Key} =
         foldf(fun(T)->
-                      public_identity_key(T,[])
+                      ssh_file:private_identity_key(T,[])
               end,
               fun({error,_})->false;
                  (_)->true
