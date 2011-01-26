@@ -8,19 +8,28 @@
 %%%-------------------------------------------------------------------
 -module(ssh_sign).
 
+-include_lib("ssh.hrl").
+-include_lib("PKCS-1.hrl").
+-include_lib("DSS.hrl").
+
 -export([sign/1
+         ,sign/2
          ,verify/2
          ,public_identity_key/2
+         ,private_identity_key/3
          ,foldf/3
         ]).
 
 
-sign(Data) when is_binary(Data) ->
+sign(Data) ->
+    sign(Data, no_passwd).
+
+sign(Data, Password) when is_binary(Data) ->
     {ok,{_,Type,_,_,_}=Key} =
         foldf(fun(T)->
-                      ssh_file:private_identity_key(T,[])
+                      private_identity_key(T,[], Password)
               end,
-              fun({error,_})->false;
+              fun({error,_}=Res)->Res;
                  (_)->true
               end,
               ["ssh-dss", "ssh-rsa"]),
@@ -56,16 +65,64 @@ read_public_key_v2(File, Type) ->
             Error
     end.
 
+identity_key_filename("ssh-dss") -> "id_dsa";
+identity_key_filename("ssh-rsa") -> "id_rsa".
+
+private_identity_key(Alg, Opts, Password) ->
+    Path = ssh_file:file_name(user, identity_key_filename(Alg), Opts),
+    read_private_key_v2(Path, Alg, Password).
+
+
+read_private_key_v2(File, Type, Password) ->
+     case catch (public_key:pem_to_der(File, Password)) of
+	 {ok, [{_, Bin, _}]} ->
+	     decode_private_key_v2(Bin, Type);
+	 Error -> %% Note we do handle password encrypted keys at the moment
+	     {error, Error}
+     end.
+
+decode_private_key_v2(Private,"ssh-rsa") ->
+    case 'PKCS-1':decode( 'RSAPrivateKey', Private) of
+	{ok,RSA} -> %% FIXME Check for two-prime version
+	    {ok, #ssh_key { type = rsa,
+			    public = {RSA#'RSAPrivateKey'.modulus,
+				      RSA#'RSAPrivateKey'.publicExponent},
+			    private = {RSA#'RSAPrivateKey'.modulus,
+				       RSA#'RSAPrivateKey'.privateExponent}
+			    }};
+	Error ->
+	    Error
+    end;
+decode_private_key_v2(Private, "ssh-dss") ->
+    case 'DSS':decode('DSAPrivateKey', Private) of
+	{ok,DSA} -> %% FIXME Check for two-prime version
+	    {ok, #ssh_key { type = dsa,
+			    public = {DSA#'DSAPrivateKey'.p,
+				      DSA#'DSAPrivateKey'.q,
+				      DSA#'DSAPrivateKey'.g,
+				      DSA#'DSAPrivateKey'.y},
+			    private= {DSA#'DSAPrivateKey'.p,
+				      DSA#'DSAPrivateKey'.q,
+				      DSA#'DSAPrivateKey'.g,
+				      DSA#'DSAPrivateKey'.x}
+			   }};
+	_ ->
+	    {error,bad_format}
+    end.
+
 %% ----------------------------------------------------------------------------
 %% @spec  foldf(fun(), fun(), list()) -> term()
 %% @doc Runs the first fun on elements in the list.
 %%      Returns the first result for which the predicate is true
 %% @end------------------------------------------------------------------------
 
-foldf(F, Pred, [H|T]) ->
+foldf(F, Pred, L) ->
+    foldf(F, Pred, L, []).
+
+foldf(F, Pred, [H|T], Acc) ->
     Res = F(H),
     case Pred(Res) of
         true -> Res;
-        _    -> foldf(F, Pred, T)
+        _    -> foldf(F, Pred, T, [Res|Acc])
     end;
-foldf(_,_,[]) -> false.
+foldf(_,_,[],Acc) -> {error, Acc}.
