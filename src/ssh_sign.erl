@@ -32,7 +32,7 @@ sign(Data, Password) when is_binary(Data) ->
               fun({error,_}=Res)->Res;
                  (_)->true
               end,
-              ["ssh-dss", "ssh-rsa"]),
+              ["ssh-rsa", "ssh-dss"]),
     case Type of
         dsa -> ssh_dsa:sign(Key, Data);
         rsa -> ssh_rsa:sign(Key, Data)
