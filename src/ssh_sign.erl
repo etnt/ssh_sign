@@ -112,7 +112,7 @@ decode_private_key_v2(Private, "ssh-dss") ->
     end.
 
 digest(Passwd,A,B,C,Timestamp) ->
-    {Timestamp, sign(term_to_binary({A,B,C,D}),Passwd)}.
+    {Timestamp, sign(term_to_binary({A,B,C,Timestamp}),Passwd)}.
 
 %% ----------------------------------------------------------------------------
 %% @spec  foldf(fun(), fun(), list()) -> term()
