@@ -18,6 +18,7 @@
          ,public_identity_key/2
          ,private_identity_key/3
          ,foldf/3
+         ,digest/5
         ]).
 
 
@@ -109,6 +110,9 @@ decode_private_key_v2(Private, "ssh-dss") ->
 	_ ->
 	    {error,bad_format}
     end.
+
+digest(Passwd,A,B,C,Timestamp) ->
+    {Timestamp, sign(term_to_binary({A,B,C,D}),Passwd)}.
 
 %% ----------------------------------------------------------------------------
 %% @spec  foldf(fun(), fun(), list()) -> term()
