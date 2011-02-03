@@ -114,6 +114,10 @@ decode_private_key_v2(Private, "ssh-dss") ->
 digest(Passwd,A,B,C,Timestamp) ->
     {Timestamp, sign(term_to_binary({A,B,C,Timestamp}),Passwd)}.
 
+now_ish() ->
+    {Msec, Sec, _} = now(),
+    Msec*1000000 + Sec.
+
 %% ----------------------------------------------------------------------------
 %% @spec  foldf(fun(), fun(), list()) -> term()
 %% @doc Runs the first fun on elements in the list.
