@@ -47,8 +47,27 @@ verify(Data, Sig) when is_binary(Data), is_binary(Sig) ->
     {ok,Key} = public_identity_key("ssh-rsa",[]),
     ssh_rsa:verify(Key, Data, Sig).
 
+verify(Data, Sig, [File | T]) ->
+    case verify(Data, Sig, File) of
+        ok -> ok;
+        _  -> verify(Data, Sig, T)
+    end;
+verify(_, _, []) -> {error, bad_signature};
 verify(Data, Sig, Filename) ->
-    ok.
+    case foldf(fun(T) ->
+                       ssh_sign:read_public_key_v2(Filename, T)
+               end,
+               fun({error,_}=Res)->Res;
+                  (_)->true
+               end,
+               ["ssh-rsa", "ssh-dss"]) of
+        {ok,{_,rsa,_,_,_}=Key} -> ssh_rsa:verify(Key, Data, Sig);
+        {ok,{_,dsa,_,_,_}=Key} -> ssh_dsa:verify(Key, Data, Sig);
+        Error -> Error
+    end.
+
+
+
 
 public_identity_key(Alg, Opts) ->
     Path = ssh_file:file_name(user, public_identity_key_filename(Alg), Opts),
