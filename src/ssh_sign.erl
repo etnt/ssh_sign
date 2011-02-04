@@ -15,10 +15,14 @@
 -export([sign/1
          ,sign/2
          ,verify/2
+         ,verify/3
          ,public_identity_key/2
          ,private_identity_key/3
+         ,read_public_key_v2/2
          ,foldf/3
          ,digest/5
+         ,mk_term/4
+         ,now_ish/0
         ]).
 
 
@@ -42,6 +46,9 @@ sign(Data, Password) when is_binary(Data) ->
 verify(Data, Sig) when is_binary(Data), is_binary(Sig) ->
     {ok,Key} = public_identity_key("ssh-rsa",[]),
     ssh_rsa:verify(Key, Data, Sig).
+
+verify(Data, Sig, Filename) ->
+    ok.
 
 public_identity_key(Alg, Opts) ->
     Path = ssh_file:file_name(user, public_identity_key_filename(Alg), Opts),
@@ -112,7 +119,10 @@ decode_private_key_v2(Private, "ssh-dss") ->
     end.
 
 digest(Passwd,A,B,C,Timestamp) ->
-    {Timestamp, sign(term_to_binary({A,B,C,Timestamp}),Passwd)}.
+    {Timestamp, sign(mk_term(A,B,C,Timestamp),Passwd)}.
+
+mk_term(A,B,C,Timestamp) ->
+    term_to_binary({A,B,C,Timestamp}).
 
 now_ish() ->
     {Msec, Sec, _} = now(),
