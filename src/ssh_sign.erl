@@ -16,6 +16,7 @@
          ,sign/2
          ,verify/2
          ,verify/3
+         ,verify_file/3
          ,public_identity_key/2
          ,private_identity_key/3
          ,read_public_key_v2/2
@@ -50,10 +51,11 @@ verify(Data, Sig) when is_binary(Data), is_binary(Sig) ->
 verify(Data, Sig, [File | T]) ->
     case verify(Data, Sig, File) of
         ok -> ok;
-        _  -> verify(Data, Sig, T)
+        _  -> verify_file(Data, Sig, T)
     end;
-verify(_, _, []) -> {error, bad_signature};
-verify(Data, Sig, Filename) ->
+verify(_, _, []) -> {error, bad_signature}.
+
+verify_file(Data, Sig, Filename) ->
     case foldf(fun(T) ->
                        ssh_sign:read_public_key_v2(Filename, T)
                end,
