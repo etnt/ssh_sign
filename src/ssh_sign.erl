@@ -138,6 +138,7 @@ decode_private_key_v2(Private, "ssh-dss") ->
     end.
 
 digest(Passwd,A,B,C,Timestamp) ->
+    io:format("~nsigning: ~p~n", [mk_term(A,B,C,Timestamp)]),
     {Timestamp, sign(mk_term(A,B,C,Timestamp),Passwd)}.
 
 mk_term(Branch,IP,Port,Timestamp) when is_list(Branch) andalso
