@@ -49,9 +49,9 @@ verify(Data, Sig) when is_binary(Data), is_binary(Sig) ->
     ssh_rsa:verify(Key, Data, Sig).
 
 verify(Data, Sig, [File | T]) ->
-    case verify(Data, Sig, File) of
+    case verify_file(Data, Sig, File) of
         ok -> ok;
-        _  -> verify_file(Data, Sig, T)
+        _  -> verify(Data, Sig, T)
     end;
 verify(_, _, []) -> {error, bad_signature}.
 
