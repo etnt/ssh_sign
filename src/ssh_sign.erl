@@ -140,8 +140,11 @@ decode_private_key_v2(Private, "ssh-dss") ->
 digest(Passwd,A,B,C,Timestamp) ->
     {Timestamp, sign(mk_term(A,B,C,Timestamp),Passwd)}.
 
-mk_term(A,B,C,Timestamp) ->
-    term_to_binary({A,B,C,Timestamp}).
+mk_term(Branch,IP,Port,Timestamp) when is_list(Branch) andalso
+                                       is_list(IP) andalso
+                                       is_integer(Port) andalso
+                                       is_integer(Timestamp) ->
+    term_to_binary({Branch,IP,Port,Timestamp}).
 
 now_ish() ->
     {Msec, Sec, _} = now(),
