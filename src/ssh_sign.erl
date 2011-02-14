@@ -57,7 +57,11 @@ verify(_, _, []) -> {error, bad_signature}.
 
 verify_file(Data, Sig, Filename) ->
     case foldf(fun(T) ->
-                       ssh_sign:read_public_key_v2(Filename, T)
+                       try ssh_sign:read_public_key_v2(Filename, T)
+                       catch
+                           P:E -> io:format("~p:~p ~p:~p~n",
+                                            [Filename, T, P, E])
+                       end
                end,
                fun({error,_}=Res)->Res;
                   (_)->true
