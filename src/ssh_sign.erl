@@ -67,8 +67,9 @@ verify_file(Data, Sig, Filename) ->
                   (_)->true
                end,
                ["ssh-rsa", "ssh-dss"]) of
-        {ok,{_,rsa,_,_,_}=Key} -> ssh_rsa:verify(Key, Data, Sig);
-        {ok,{_,dsa,_,_,_}=Key} -> ssh_dsa:verify(Key, Data, Sig);
+        % the verify might fail if the Digest is > than a keys N.
+        {ok,{_,rsa,_,_,_}=Key} -> catch ssh_rsa:verify(Key, Data, Sig);
+        {ok,{_,dsa,_,_,_}=Key} -> catch ssh_dsa:verify(Key, Data, Sig);
         Error -> Error
     end.
 
