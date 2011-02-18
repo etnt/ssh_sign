@@ -31,17 +31,20 @@ sign(Data) ->
     sign(Data, no_passwd).
 
 sign(Data, Password) when is_binary(Data) ->
-    {ok,{_,Type,_,_,_}=Key} =
-        foldf(fun(T)->
+    case foldf(fun(T)->
                       private_identity_key(T,[], Password)
               end,
               fun({error,_}=Res)->Res;
                  (_)->true
               end,
-              ["ssh-rsa", "ssh-dss"]),
-    case Type of
-        dsa -> ssh_dsa:sign(Key, Data);
-        rsa -> ssh_rsa:sign(Key, Data)
+              ["ssh-rsa", "ssh-dss"]) of
+        {ok,{_,Type,_,_,_}=Key} ->
+            case Type of
+                dsa -> ssh_dsa:sign(Key, Data);
+                rsa -> ssh_rsa:sign(Key, Data)
+            end;
+        {error, E} ->
+            erlang:error({keyerror, E})
     end.
 
 verify(Data, Sig) when is_binary(Data), is_binary(Sig) ->
@@ -157,7 +160,6 @@ mk_term(Branch,IP,Port,Timestamp) when is_list(Branch) andalso
 now_ish() ->
     {Msec, Sec, _} = now(),
     Msec*1000000 + Sec.
-
 %% ----------------------------------------------------------------------------
 %% @spec  foldf(fun(), fun(), list()) -> term()
 %% @doc Runs the first fun on elements in the list.
