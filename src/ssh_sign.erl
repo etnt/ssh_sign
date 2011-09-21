@@ -32,7 +32,7 @@ sign(Data) ->
 
 sign(Data, Password) when is_binary(Data) ->
     case foldf(fun(T)->
-                      private_identity_key(T,[], Password)
+                       private_identity_key(T,[], Password)
               end,
               fun({error,_}=Res)->Res;
                  (_)->true
@@ -105,18 +105,23 @@ read_public_key_v2(File, Type) ->
 identity_key_filename("ssh-dss") -> "id_dsa";
 identity_key_filename("ssh-rsa") -> "id_rsa".
 
-private_identity_key(Alg, Opts, Password) ->
-    Path = ssh_file:file_name(user, identity_key_filename(Alg), Opts),
+private_identity_key(Alg, _Opts, Password) ->
+    Path = full_file_name(identity_key_filename(Alg)),
     read_private_key_v2(Path, Alg, Password).
 
+full_file_name(Fname) ->
+    filename:join([os:getenv("HOME"),".ssh",Fname]).
 
 read_private_key_v2(File, Type, _Password) ->
-     case catch (pem_to_der(File)) of
-	 {ok, [{_, Bin, _}]} ->
-	     decode_private_key_v2(Bin, Type);
-	 Error -> %% Note we do handle password encrypted keys at the moment
-	     {error, Error}
-     end.
+    try
+        [{_, Bin, _}] = pem_to_der(File),
+        decode_private_key_v2(Bin, Type)
+
+    catch 
+        _:Error -> 
+            %% Note we do handle password encrypted keys at the moment
+            {error, Error}
+    end.
 
 decode_private_key_v2(Private,"ssh-rsa") ->
     case 'PKCS-1':decode( 'RSAPrivateKey', Private) of
@@ -148,7 +153,7 @@ decode_private_key_v2(Private, "ssh-dss") ->
     end.
 
 digest(Passwd,A,B,C,Timestamp) ->
-    io:format("~nsigning: ~p~n", [mk_term(A,B,C,Timestamp)]),
+    %%io:format("~nsigning: ~p~n", [mk_term(A,B,C,Timestamp)]),
     {Timestamp, sign(mk_term(A,B,C,Timestamp),Passwd)}.
 
 mk_term(Branch,IP,Port,Timestamp) when is_list(Branch) andalso
