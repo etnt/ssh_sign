@@ -110,8 +110,8 @@ private_identity_key(Alg, Opts, Password) ->
     read_private_key_v2(Path, Alg, Password).
 
 
-read_private_key_v2(File, Type, Password) ->
-     case catch (public_key:pem_to_der(File, Password)) of
+read_private_key_v2(File, Type, _Password) ->
+     case catch (pem_to_der(File)) of
 	 {ok, [{_, Bin, _}]} ->
 	     decode_private_key_v2(Bin, Type);
 	 Error -> %% Note we do handle password encrypted keys at the moment
@@ -176,3 +176,8 @@ foldf(F, Pred, [H|T], Acc) ->
         _    -> foldf(F, Pred, T, [Res|Acc])
     end;
 foldf(_,_,[],Acc) -> {error, Acc}.
+
+
+pem_to_der(File) ->
+    {ok, PemBin} = file:read_file(File),
+    public_key:pem_decode(PemBin).
